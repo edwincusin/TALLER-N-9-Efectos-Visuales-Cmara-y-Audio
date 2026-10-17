@@ -1,120 +1,118 @@
-# 🎮 TALLER N° 8: Sistema de Menús, Pausa In-Game y Navegación entre Escenas
+# Taller N° 9: Efectos Visuales, Cámara y Audio
 
-Proyecto de juego 2D hecho en **Unity 6.3 LTS (6000.3.25f1)**.
-En este taller se implementó la arquitectura completa de menús de un juego 2D: pantalla de inicio, navegación entre escenas, pausa In-Game y registro de escenas en Build Profiles.
+Proyecto 2D desarrollado en **Unity 6** donde se implementan mecánicas de pulido visual y auditivo (*Game Juice*): partículas de polvo al saltar, sacudida de cámara al recibir daño y un gestor centralizado de audio.
 
----
+## Objetivo
 
-## 🎯 Objetivo
+Implementar efectos de pulido profesional en un juego 2D:
 
-Implementar un sistema de menús con:
+- Sistema de partículas para el polvo al despegar en cada salto.
+- Sacudida de pantalla al recibir impactos.
+- Gestor de audio centralizado para música de fondo en bucle y efectos de sonido (SFX).
 
-- Pantalla de inicio (**MainMenu**).
-- Navegación entre escenas con `SceneManager.LoadScene`.
-- Sistema de pausa In-Game con congelamiento de físicas (`Time.timeScale = 0`).
-- Registro oficial de las escenas en **Build Profiles / Build Settings**.
+## Características
 
----
+### 1. Polvo al saltar (`PolvoSalto`)
 
-## 🎬 Video demostrativo
+Prefab con un **Particle System** que se instancia al despegar del suelo.
 
-✅ **El video demostrativo está incluido en este repositorio** con el nombre **`VIDEOTALLER8`**.
-
-📱 **También fue compartido en el grupo de WhatsApp** de la clase.
-
-El video (máx. 10 segundos) muestra:
-
-1. Inicio en la escena **MainMenu**.
-2. Clic en **JUGAR** para entrar al **Nivel1**.
-3. Pulsar **ESC** o **P** para congelar el juego y mostrar el menú de pausa.
-4. Uso del botón **REANUDAR**.
-
----
-
-## 🗂️ Escenas del proyecto
-
-| Índice | Escena | Descripción |
-|:---:|---|---|
-| 0 | `MainMenu` | Pantalla de inicio con el título del juego y los botones **JUGAR** y **SALIR**. |
-| 1 | `Nivel1` | Nivel principal del juego, con el menú de pausa In-Game. |
-
-Las escenas están registradas en **File > Build Profiles (Build Settings)** en ese orden estricto.
-
----
-
-## 📜 Scripts nuevos
-
-### `MainMenu.cs`
-Controla la pantalla de inicio.
-
-| Función | Qué hace |
+| Parámetro | Valor |
 |---|---|
-| `Jugar()` | Carga la escena del nivel principal (`Nivel1`). |
-| `Salir()` | Cierra la aplicación con `Application.Quit()`. |
+| Duration | 0.3 |
+| Looping | Desactivado |
+| Simulation Space | World |
+| Emission Burst (Count) | 10 |
+| Rate over Time | 0 |
+| Shape | Circle (Radius 0.1) |
+| Stop Action | Destroy |
 
-Las funciones públicas están conectadas en **On Click ()** de los botones **JUGAR** y **SALIR**.
+El prefab se encuentra en `Assets/Prefabs` y se instancia desde `PlayerController.cs`:
 
-### `PauseMenu.cs`
-Controla el menú de pausa dentro del nivel.
+```csharp
+Instantiate(polvoSaltoPrefab, transform.position, Quaternion.identity);
+```
 
-| Función | Qué hace |
-|---|---|
-| `Update()` | Detecta las teclas **ESC** o **P** para pausar o reanudar. |
-| `Pausa()` | Muestra el panel y fija `Time.timeScale = 0f`. |
-| `Reanudar()` | Oculta el panel y fija `Time.timeScale = 1f`. |
-| `Reiniciar()` | Restaura el tiempo y recarga la escena actual. |
-| `IrAlMenu()` | Restaura el tiempo y vuelve a la escena `MainMenu`. |
+### 2. Sacudida de cámara (`CameraShake.cs`)
 
----
+- Usa el patrón **Singleton** (`CameraShake.Instancia`).
+- Se asigna al objeto **Main Camera**.
+- Se invoca desde `PlayerHealth.cs` al recibir daño de un enemigo o trampa:
 
-## 🖼️ Interfaz
+```csharp
+CameraShake.Instancia.Sacudir(0.2f, 0.2f);
+```
 
-### Menú principal (MainMenu)
-- Título del juego.
-- Botón **JUGAR**.
-- Botón **SALIR**.
+Parámetros: `duracion` (segundos del temblor) y `fuerza` (desplazamiento máximo de la cámara).
 
-### Menú de pausa (PanelPausa)
-- Título **"JUEGO EN PAUSA"**.
-- Botón **REANUDAR**.
-- Botón **REINICIAR**.
-- Botón **MENÚ PRINCIPAL**.
-- El panel está **oculto por defecto** (casilla desmarcada en el Inspector).
+### 3. Gestor de audio (`AudioManager.cs`)
 
----
+- Patrón **Singleton** con `DontDestroyOnLoad(gameObject)`, por lo que el audio persiste entre escenas.
+- Dos componentes `AudioSource`: uno para la **música en bucle** y otro para los **efectos SFX**.
+- Método público para reproducir efectos:
 
-## ⌨️ Controles
+```csharp
+AudioManager.Instancia.ReproducirSfx(clip);
+```
+
+Sonidos implementados:
+
+| Evento | Script | Clip |
+|---|---|---|
+| Saltar | `PlayerController.cs` | `clipSalto` |
+| Atacar | `PlayerAttack.cs` | `clipAtaque` |
+| Recibir daño | `PlayerHealth.cs` | `clipDano` |
+| Recolectar moneda | `Coin.cs` | `clipMoneda` |
+
+## Estructura de scripts
+
+```
+Assets/
+├── Prefabs/
+│   └── PolvoSalto.prefab
+└── Scripts/
+    ├── PlayerController.cs   # Movimiento, salto, polvo y sonido de salto
+    ├── PlayerHealth.cs       # Daño, sacudida de cámara y sonido de daño
+    ├── PlayerAttack.cs       # Ataque y sonido de ataque
+    ├── Coin.cs               # Recolección de monedas y sonido
+    ├── CameraShake.cs        # Sacudida de cámara (Singleton)
+    └── AudioManager.cs       # Música y SFX (Singleton)
+```
+
+## Cómo ejecutar el proyecto
+
+1. Clonar el repositorio:
+   ```bash
+   git clone https://github.com/TU_USUARIO/TU_REPOSITORIO.git
+   ```
+2. Abrir el proyecto con **Unity 6** desde Unity Hub.
+3. Abrir la escena principal en `Assets/Scenes`.
+4. Verificar en el Inspector que:
+   - `CameraShake` esté asignado a **Main Camera**.
+   - `AudioManager` tenga asignados los dos `AudioSource` y los clips de sonido.
+   - El Player tenga asignado el prefab `PolvoSalto`.
+5. Pulsar **Play**.
+
+### Controles
 
 | Tecla | Acción |
-|:---:|---|
-| `ESC` o `P` | Pausar / reanudar el juego |
+|---|---|
+| `A` / `D` o flechas | Mover al personaje |
+| `Espacio` | Saltar |
 
----
+## Video demostrativo
 
-## ▶️ Cómo ejecutar el proyecto
+El video de demostración (máx. 10 segundos) muestra al personaje:
 
-1. Clona el repositorio:
-   ```bash
-   git clone <URL-DEL-REPOSITORIO>
-   ```
-2. Abre el proyecto con **Unity 6.3 LTS (6000.3.25f1)** desde Unity Hub.
-3. Abre la escena **`MainMenu`** (`Assets/Scenes`).
-4. Pulsa **Play**.
+- Saltando (polvo y SFX de salto).
+- Recolectando una moneda (SFX de moneda).
+- Recibiendo daño de un enemigo (temblor de cámara).
 
-> ℹ️ Este repositorio usa **Git LFS**. Instálalo antes de clonar (`git lfs install`) para descargar correctamente los archivos grandes.
+**Dónde se compartió:**
 
----
+- 📱 En el **grupo de WhatsApp del curso**.
+- 🐙 En este **repositorio de GitHub**, con el nombre de archivo **`VideoTaller9`**.
 
-## 🛠️ Tecnologías
+## Autor
 
-- Unity 6.3 LTS (6000.3.25f1)
-- C#
-- TextMeshPro y UI (Canvas)
-- Git, GitHub y Git LFS
-
----
-
-## 👤 Autor
-
-**Nombre:** _(EdwinCsn)_
-**Taller:** N° 8: Sistema de Menús, Pausa In-Game y Navegación entre Escenas
+- **Nombre:** EDWINCSN
+- **Taller:** N° 9, Efectos Visuales, Cámara y Audio
